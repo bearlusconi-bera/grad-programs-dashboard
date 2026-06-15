@@ -116,8 +116,15 @@
   .cal-head { display: grid; grid-template-columns: 120px 1fr; gap: 12px; margin-bottom: 8px; }
   .cal-months { display: grid; grid-template-columns: repeat(12, 1fr); }
   .cal-months span { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; color: var(--ink-faint); text-align: center; }
-  .cal-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; margin-bottom: 9px; }
+  .cal-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; margin-bottom: 5px; }
   .cal-row .blabel { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-group { margin-bottom: 16px; }
+  .cal-group:last-child { margin-bottom: 0; }
+  .cal-group .cal-row:last-child { margin-bottom: 0; }
+  .cal-grouptitle { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; margin: 0 0 6px 132px; }
+  .cal-grouptitle .pip { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .blabel.cal-yr { font-size: 11px; color: var(--ink-faint); font-weight: 600; letter-spacing: .01em; }
+  .blabel.cal-school { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
   .cal-track { position: relative; height: 26px; border-radius: 7px; background-color: #fafbfe; border: 1px solid var(--line-soft);
     background-image: repeating-linear-gradient(to right, var(--line-soft) 0 1px, transparent 1px, transparent calc(100% / 12)); }
   .cal-start { position: absolute; top: 3px; bottom: 3px; width: 5px; border-radius: 3px; transform: translateX(-50%); box-shadow: 0 0 0 2px #fff; }
@@ -248,7 +255,7 @@
     </div>
     <div class="viz-timeline">
       <h3>Application &amp; intake calendar</h3>
-      <div class="axis">Across the calendar year — when application rounds close and when each program begins · follows filter &amp; sort</div>
+      <div class="axis">Each cycle runs across two calendar years — <b>Year 1</b> you apply, <b>Year 2</b> later rounds close and the program starts. Rings = deadline rounds · bands = intake · follows filter &amp; sort</div>
       <div class="cal-scroll"><div class="cal-inner">
         <div class="cal-head"><div></div><div class="cal-months" id="calmonths"></div></div>
         <div id="calbars"></div>
@@ -290,7 +297,7 @@ const PROGRAMS = [
     location: 'Stanford, CA', duration: '12 months',
     intake: 'Sept (annual)', startMonth: 'September',
     deadlines: ['R1 Sep', 'R2 Jan', 'R3 Apr'],
-    intakeMonths: [8], deadlineMonths: [8, 0, 3],
+    cal: { y1: { dl: [8] }, y2: { dl: [0, 3], st: [8] } },
     costLow: 160, costHigh: 180, cur: 'USD', costLowUSD: 160, costHighUSD: 180,
     ageLow: 33, ageHigh: 36, expLow: 12, expHigh: 13, expTxt: '~12–13 yrs',
     profile: 'Senior managers, executives & founders',
@@ -303,7 +310,7 @@ const PROGRAMS = [
     location: 'Evanston, IL', duration: '12 months',
     intake: 'June start', startMonth: 'June',
     deadlines: ['Jun', 'Sep', 'Jan'],
-    intakeMonths: [5], deadlineMonths: [5, 8, 0],
+    cal: { y1: { dl: [5, 8] }, y2: { dl: [0], st: [5] } },
     costLow: 160, costHigh: 190, cur: 'USD', costLowUSD: 160, costHighUSD: 190,
     ageLow: 27, ageHigh: 29, expLow: 5, expHigh: 6, expTxt: '~5–6 yrs',
     profile: 'Mid-career, completed MBA core prerequisites',
@@ -316,7 +323,7 @@ const PROGRAMS = [
     location: 'Cambridge, MA', duration: '12 months',
     intake: 'June / July', startMonth: 'July',
     deadlines: ['Sep', 'Jan', 'Apr'],
-    intakeMonths: [6], deadlineMonths: [8, 0, 3],
+    cal: { y1: { dl: [8] }, y2: { dl: [0, 3], st: [6] } },
     costLow: 170, costHigh: 210, cur: 'USD', costLowUSD: 170, costHighUSD: 210,
     ageLow: 35, ageHigh: 40, expLow: 10, expHigh: 15, expTxt: '~10–15+ yrs',
     profile: 'Executive leadership cohort',
@@ -329,7 +336,7 @@ const PROGRAMS = [
     location: 'France / Singapore', duration: '~10 months',
     intake: 'Jan + Aug', startMonth: 'January',
     deadlines: ['4 rounds / intake'],
-    intakeMonths: [0, 7], deadlineMonths: [], deadlineNote: '4 rounds per intake — months vary',
+    cal: { y1: { note: 'Application rounds — months vary' }, y2: { st: [0, 7] } },
     costLow: 120, costHigh: 140, cur: 'EUR', costLowUSD: 132, costHighUSD: 154,
     ageLow: 29, ageHigh: 29, expLow: 5, expHigh: 6, expTxt: '~5–6 yrs',
     profile: 'Global consulting / finance / tech mix',
@@ -342,7 +349,7 @@ const PROGRAMS = [
     location: 'Berkeley, CA', duration: '~9 months',
     intake: 'Fall (Aug)', startMonth: 'August',
     deadlines: ['~December'],
-    intakeMonths: [7], deadlineMonths: [11],
+    cal: { y1: { dl: [11] }, y2: { st: [7] } },
     costLow: 80, costHigh: 110, cur: 'USD', costLowUSD: 80, costHighUSD: 110,
     ageLow: 23, ageHigh: 27, expLow: 0, expHigh: 3, expTxt: '~0–3 yrs',
     profile: 'Early-career engineers / CS grads',
@@ -355,7 +362,7 @@ const PROGRAMS = [
     location: 'New York, NY', duration: '12 months',
     intake: 'May start', startMonth: 'May',
     deadlines: ['R1 Sep', 'R2 Oct', 'R3 Jan', 'Final Apr'],
-    intakeMonths: [4], deadlineMonths: [8, 9, 0, 3],
+    cal: { y1: { dl: [8, 9] }, y2: { dl: [0, 3], st: [4] } },
     costLow: 170, costHigh: 200, cur: 'USD', costLowUSD: 170, costHighUSD: 200,
     ageLow: 28, ageHigh: 32, expLow: 5, expHigh: 8, expTxt: '~5–8 yrs',
     profile: 'Consulting · Wall St. finance · tech / PM',
@@ -477,18 +484,30 @@ function renderBars(rows) {
   document.getElementById('expbars').innerHTML = exp;
 }
 
-/* ---------- Calendar timeline ---------- */
+/* ---------- Calendar timeline (two-year cycle) ---------- */
 function renderCalendar(rows) {
   const pos = m => ((m + 0.5) / 12) * 100;
+  const hasContent = y => y && ((y.dl && y.dl.length) || (y.st && y.st.length) || y.note);
+  const yearRow = (p, label, cls, y) => {
+    const dls = (y.dl || []).map(m =>
+      `<div class="cal-dl" title="${p.school} deadline — ${MONTHS[m]} (${label})" style="left:${pos(m)}%;border:2px solid ${p.color}"></div>`).join('');
+    const sts = (y.st || []).map(m =>
+      `<div class="cal-start" title="${p.school} starts — ${MONTHS[m]} (${label})" style="left:${pos(m)}%;background:${p.color}"></div>`).join('');
+    const note = y.note ? `<div class="cal-note">${y.note}</div>` : '';
+    return `<div class="cal-row"><div class="blabel ${cls}">${label}</div>
+      <div class="cal-track">${dls}${sts}${note}</div></div>`;
+  };
   document.getElementById('calbars').innerHTML = rows.map(p => {
-    const starts = (p.intakeMonths || []).map(m =>
-      `<div class="cal-start" title="${p.school} starts — ${MONTHS[m]}" style="left:${pos(m)}%;background:${p.color}"></div>`).join('');
-    const dls = (p.deadlineMonths || []).map(m =>
-      `<div class="cal-dl" title="${p.school} application deadline — ${MONTHS[m]}" style="left:${pos(m)}%;border:2px solid ${p.color}"></div>`).join('');
-    const note = (p.deadlineMonths && p.deadlineMonths.length === 0 && p.deadlineNote)
-      ? `<div class="cal-note">${p.deadlineNote}</div>` : '';
-    return `<div class="cal-row"><div class="blabel">${p.school}</div>
-      <div class="cal-track">${dls}${starts}${note}</div></div>`;
+    const c = p.cal || {};
+    const y1 = hasContent(c.y1), y2 = hasContent(c.y2);
+    if (y1 && y2) {
+      return `<div class="cal-group">
+        <div class="cal-grouptitle" style="color:${p.color}"><span class="pip" style="background:${p.color}"></span>${p.school}</div>
+        ${yearRow(p, 'Year 1', 'cal-yr', c.y1)}
+        ${yearRow(p, 'Year 2', 'cal-yr', c.y2)}
+      </div>`;
+    }
+    return `<div class="cal-group">${yearRow(p, p.school, 'cal-school', y1 ? c.y1 : (c.y2 || {}))}</div>`;
   }).join('');
 }
 
