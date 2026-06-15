@@ -128,12 +128,14 @@
   .cal-track { position: relative; height: 26px; border-radius: 7px; background-color: #fafbfe; border: 1px solid var(--line-soft);
     background-image: repeating-linear-gradient(to right, var(--line-soft) 0 1px, transparent 1px, transparent calc(100% / 12)); }
   .cal-start { position: absolute; top: 3px; bottom: 3px; width: 5px; border-radius: 3px; transform: translateX(-50%); box-shadow: 0 0 0 2px #fff; }
-  .cal-dl { position: absolute; top: 50%; width: 13px; height: 13px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); box-sizing: border-box; }
+  .cal-dl { position: absolute; top: 50%; width: 13px; height: 13px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+  .cal-dl.num { width: 17px; height: 17px; }
+  .cal-dl-n { font-size: 9.5px; font-weight: 700; line-height: 1; }
   .cal-note { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); font-size: 11px; font-style: italic; color: var(--ink-faint); }
   .cal-legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; font-size: 11.5px; color: var(--ink-soft); align-items: center; }
   .cal-legend .lg { display: inline-flex; align-items: center; gap: 7px; }
   .cal-legend .lk-start { width: 5px; height: 14px; border-radius: 3px; background: var(--ink-soft); }
-  .cal-legend .lk-dl { width: 13px; height: 13px; border-radius: 50%; background: #fff; border: 2px solid var(--ink-soft); box-sizing: border-box; }
+  .cal-legend .lk-dl { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--ink-soft); box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--ink-soft); }
 
   /* Cards */
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(335px, 1fr)); gap: 16px; }
@@ -255,13 +257,13 @@
     </div>
     <div class="viz-timeline">
       <h3>Application &amp; intake calendar</h3>
-      <div class="axis">Each cycle runs across two calendar years — <b>Year 1</b> you apply, <b>Year 2</b> later rounds close and the program starts. Rings = deadline rounds · bands = intake · follows filter &amp; sort</div>
+      <div class="axis">Each cycle runs across two calendar years — <b>Year 1</b> you apply, <b>Year 2</b> later rounds close and the program starts. Numbered rings = deadline rounds (1 = earliest) · bands = intake · follows filter &amp; sort</div>
       <div class="cal-scroll"><div class="cal-inner">
         <div class="cal-head"><div></div><div class="cal-months" id="calmonths"></div></div>
         <div id="calbars"></div>
       </div></div>
       <div class="cal-legend">
-        <span class="lg"><span class="lk-dl"></span>Application deadline (round)</span>
+        <span class="lg"><span class="lk-dl">1</span>Application deadlines — numbered by round (1 = earliest)</span>
         <span class="lg"><span class="lk-start"></span>Program starts (intake)</span>
         <span class="lg" style="color:var(--ink-faint)">Hover any marker for the month</span>
       </div>
@@ -491,9 +493,14 @@ function renderBars(rows) {
 function renderCalendar(rows) {
   const pos = m => ((m + 0.5) / 12) * 100;
   const hasContent = y => y && ((y.dl && y.dl.length) || (y.st && y.st.length) || y.note);
-  const yearRow = (p, label, cls, y) => {
-    const dls = (y.dl || []).map(m =>
-      `<div class="cal-dl" title="${p.school} deadline — ${MONTHS[m]}" style="left:${pos(m)}%;border:2px solid ${p.color}"></div>`).join('');
+  const yearRow = (p, label, cls, y, numbered, startNo) => {
+    const months = (y.dl || []).slice().sort((a, b) => a - b);
+    const dls = months.map((m, i) => {
+      const no = startNo + i;
+      const inner = numbered ? `<span class="cal-dl-n" style="color:${p.color}">${no}</span>` : '';
+      const tip = numbered ? `${p.school} — Deadline ${no} (${MONTHS[m]})` : `${p.school} deadline — ${MONTHS[m]}`;
+      return `<div class="cal-dl${numbered ? ' num' : ''}" title="${tip}" style="left:${pos(m)}%;border:2px solid ${p.color}">${inner}</div>`;
+    }).join('');
     const sts = (y.st || []).map(m =>
       `<div class="cal-start" title="${p.school} starts — ${MONTHS[m]}" style="left:${pos(m)}%;background:${p.color}"></div>`).join('');
     const note = y.note ? `<div class="cal-note">${y.note}</div>` : '';
@@ -503,14 +510,17 @@ function renderCalendar(rows) {
   const groupFor = (p, cyc) => {
     const title = p.school + (cyc.label ? ` · ${cyc.label}` : '');
     const y1 = hasContent(cyc.y1), y2 = hasContent(cyc.y2);
+    const n1 = (cyc.y1 && cyc.y1.dl) ? cyc.y1.dl.length : 0;
+    const n2 = (cyc.y2 && cyc.y2.dl) ? cyc.y2.dl.length : 0;
+    const numbered = (n1 + n2) > 1;
     if (y1 && y2) {
       return `<div class="cal-group">
         <div class="cal-grouptitle" style="color:${p.color}"><span class="pip" style="background:${p.color}"></span>${title}</div>
-        ${yearRow(p, 'Year 1', 'cal-yr', cyc.y1)}
-        ${yearRow(p, 'Year 2', 'cal-yr', cyc.y2)}
+        ${yearRow(p, 'Year 1', 'cal-yr', cyc.y1, numbered, 1)}
+        ${yearRow(p, 'Year 2', 'cal-yr', cyc.y2, numbered, 1 + n1)}
       </div>`;
     }
-    return `<div class="cal-group">${yearRow(p, title, 'cal-school', y1 ? cyc.y1 : (cyc.y2 || {}))}</div>`;
+    return `<div class="cal-group">${yearRow(p, title, 'cal-school', y1 ? cyc.y1 : (cyc.y2 || {}), numbered, 1)}</div>`;
   };
   document.getElementById('calbars').innerHTML = rows.map(p =>
     (Array.isArray(p.cal) ? p.cal : [p.cal || {}]).map(cyc => groupFor(p, cyc)).join('')
